@@ -190,24 +190,20 @@ yeccpars2(16=S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_16(S, Cat, Ss, Stack, T, Ts, Tzr);
 yeccpars2(17=S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_5(S, Cat, Ss, Stack, T, Ts, Tzr);
-yeccpars2(18=S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_18(S, Cat, Ss, Stack, T, Ts, Tzr);
-%% yeccpars2(19=S, Cat, Ss, Stack, T, Ts, Tzr) ->
-%%  yeccpars2_19(S, Cat, Ss, Stack, T, Ts, Tzr);
+%% yeccpars2(18=S, Cat, Ss, Stack, T, Ts, Tzr) ->
+%%  yeccpars2_18(S, Cat, Ss, Stack, T, Ts, Tzr);
+yeccpars2(19=S, Cat, Ss, Stack, T, Ts, Tzr) ->
+ yeccpars2_19(S, Cat, Ss, Stack, T, Ts, Tzr);
 %% yeccpars2(20=S, Cat, Ss, Stack, T, Ts, Tzr) ->
 %%  yeccpars2_20(S, Cat, Ss, Stack, T, Ts, Tzr);
-yeccpars2(21=S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_21(S, Cat, Ss, Stack, T, Ts, Tzr);
-%% yeccpars2(22=S, Cat, Ss, Stack, T, Ts, Tzr) ->
-%%  yeccpars2_22(S, Cat, Ss, Stack, T, Ts, Tzr);
+%% yeccpars2(21=S, Cat, Ss, Stack, T, Ts, Tzr) ->
+%%  yeccpars2_21(S, Cat, Ss, Stack, T, Ts, Tzr);
+yeccpars2(22=S, Cat, Ss, Stack, T, Ts, Tzr) ->
+ yeccpars2_22(S, Cat, Ss, Stack, T, Ts, Tzr);
 %% yeccpars2(23=S, Cat, Ss, Stack, T, Ts, Tzr) ->
 %%  yeccpars2_23(S, Cat, Ss, Stack, T, Ts, Tzr);
 yeccpars2(24=S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_24(S, Cat, Ss, Stack, T, Ts, Tzr);
-%% yeccpars2(25=S, Cat, Ss, Stack, T, Ts, Tzr) ->
-%%  yeccpars2_25(S, Cat, Ss, Stack, T, Ts, Tzr);
-yeccpars2(26=S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_26(S, Cat, Ss, Stack, T, Ts, Tzr);
 yeccpars2(Other, _, _, _, _, _, _) ->
  erlang:error({yecc_bug,"1.3",{missing_state_in_action_table, Other}}).
 
@@ -241,18 +237,18 @@ yeccpars2_4(S, '{', Ss, Stack, T, Ts, Tzr) ->
  yeccpars1(S, 5, Ss, Stack, T, Ts, Tzr);
 yeccpars2_4(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  NewStack = yeccpars2_4_(Stack),
- yeccpars2_22(22, Cat, [4 | Ss], NewStack, T, Ts, Tzr).
+ yeccpars2_20(20, Cat, [4 | Ss], NewStack, T, Ts, Tzr).
 
 yeccpars2_5(S, string, Ss, Stack, T, Ts, Tzr) ->
  yeccpars1(S, 8, Ss, Stack, T, Ts, Tzr).
 
 yeccpars2_6(S, '}', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 21, Ss, Stack, T, Ts, Tzr).
+ yeccpars1(S, 19, Ss, Stack, T, Ts, Tzr).
 
 yeccpars2_7(S, ',', Ss, Stack, T, Ts, Tzr) ->
  yeccpars1(S, 17, Ss, Stack, T, Ts, Tzr);
-yeccpars2_7(S, '}', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 18, Ss, Stack, T, Ts, Tzr).
+yeccpars2_7(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
+ yeccgoto_members(hd(Ss), Cat, Ss, Stack, T, Ts, Tzr).
 
 yeccpars2_8(S, ':', Ss, Stack, T, Ts, Tzr) ->
  yeccpars1(S, 9, Ss, Stack, T, Ts, Tzr).
@@ -303,57 +299,48 @@ yeccpars2_16(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
 yeccpars2_18(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  [_,_|Nss] = Ss,
  NewStack = yeccpars2_18_(Stack),
- yeccgoto_object(hd(Nss), Cat, Nss, NewStack, T, Ts, Tzr).
+ yeccgoto_members(hd(Nss), Cat, Nss, NewStack, T, Ts, Tzr).
 
 yeccpars2_19(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  [_,_|Nss] = Ss,
  NewStack = yeccpars2_19_(Stack),
- yeccgoto_members(hd(Nss), Cat, Nss, NewStack, T, Ts, Tzr).
-
-yeccpars2_20(S, ',', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 17, Ss, Stack, T, Ts, Tzr);
-yeccpars2_20(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccgoto_members(hd(Ss), Cat, Ss, Stack, T, Ts, Tzr).
-
-yeccpars2_21(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
- [_,_|Nss] = Ss,
- NewStack = yeccpars2_21_(Stack),
  yeccgoto_object(hd(Nss), Cat, Nss, NewStack, T, Ts, Tzr).
 
-yeccpars2_22(S, ']', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 26, Ss, Stack, T, Ts, Tzr).
+yeccpars2_20(S, ']', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 24, Ss, Stack, T, Ts, Tzr).
 
-yeccpars2_23(S, ',', Ss, Stack, T, Ts, Tzr) ->
- yeccpars1(S, 24, Ss, Stack, T, Ts, Tzr);
-yeccpars2_23(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccgoto_elements(hd(Ss), Cat, Ss, Stack, T, Ts, Tzr).
+yeccpars2_21(S, ',', Ss, Stack, T, Ts, Tzr) ->
+ yeccpars1(S, 22, Ss, Stack, T, Ts, Tzr);
+yeccpars2_21(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
+ NewStack = yeccpars2_21_(Stack),
+ yeccgoto_elements(hd(Ss), Cat, Ss, NewStack, T, Ts, Tzr).
 
-yeccpars2_24(S, '[', Ss, Stack, T, Ts, Tzr) ->
+yeccpars2_22(S, '[', Ss, Stack, T, Ts, Tzr) ->
  yeccpars1(S, 4, Ss, Stack, T, Ts, Tzr);
-yeccpars2_24(S, false, Ss, Stack, T, Ts, Tzr) ->
+yeccpars2_22(S, false, Ss, Stack, T, Ts, Tzr) ->
  yeccpars1(S, 12, Ss, Stack, T, Ts, Tzr);
-yeccpars2_24(S, integer, Ss, Stack, T, Ts, Tzr) ->
+yeccpars2_22(S, integer, Ss, Stack, T, Ts, Tzr) ->
  yeccpars1(S, 13, Ss, Stack, T, Ts, Tzr);
-yeccpars2_24(S, null, Ss, Stack, T, Ts, Tzr) ->
+yeccpars2_22(S, null, Ss, Stack, T, Ts, Tzr) ->
  yeccpars1(S, 14, Ss, Stack, T, Ts, Tzr);
-yeccpars2_24(S, string, Ss, Stack, T, Ts, Tzr) ->
+yeccpars2_22(S, string, Ss, Stack, T, Ts, Tzr) ->
  yeccpars1(S, 15, Ss, Stack, T, Ts, Tzr);
-yeccpars2_24(S, true, Ss, Stack, T, Ts, Tzr) ->
+yeccpars2_22(S, true, Ss, Stack, T, Ts, Tzr) ->
  yeccpars1(S, 16, Ss, Stack, T, Ts, Tzr);
-yeccpars2_24(S, '{', Ss, Stack, T, Ts, Tzr) ->
+yeccpars2_22(S, '{', Ss, Stack, T, Ts, Tzr) ->
  yeccpars1(S, 5, Ss, Stack, T, Ts, Tzr);
-yeccpars2_24(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
- NewStack = yeccpars2_24_(Stack),
- yeccpars2_25(_S, Cat, [24 | Ss], NewStack, T, Ts, Tzr).
+yeccpars2_22(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
+ NewStack = yeccpars2_22_(Stack),
+ yeccpars2_23(_S, Cat, [22 | Ss], NewStack, T, Ts, Tzr).
 
-yeccpars2_25(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
+yeccpars2_23(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  [_,_|Nss] = Ss,
- NewStack = yeccpars2_25_(Stack),
+ NewStack = yeccpars2_23_(Stack),
  yeccgoto_elements(hd(Nss), Cat, Nss, NewStack, T, Ts, Tzr).
 
-yeccpars2_26(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
+yeccpars2_24(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  [_,_|Nss] = Ss,
- NewStack = yeccpars2_26_(Stack),
+ NewStack = yeccpars2_24_(Stack),
  yeccgoto_array(hd(Nss), Cat, Nss, NewStack, T, Ts, Tzr).
 
 yeccgoto_array(0=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
@@ -362,7 +349,7 @@ yeccgoto_array(4=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_3(_S, Cat, Ss, Stack, T, Ts, Tzr);
 yeccgoto_array(9=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_3(_S, Cat, Ss, Stack, T, Ts, Tzr);
-yeccgoto_array(24=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
+yeccgoto_array(22=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_3(_S, Cat, Ss, Stack, T, Ts, Tzr).
 
 yeccgoto_arrobj(0, Cat, Ss, Stack, T, Ts, Tzr) ->
@@ -371,30 +358,30 @@ yeccgoto_arrobj(4=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_11(_S, Cat, Ss, Stack, T, Ts, Tzr);
 yeccgoto_arrobj(9=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_11(_S, Cat, Ss, Stack, T, Ts, Tzr);
-yeccgoto_arrobj(24=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
+yeccgoto_arrobj(22=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_11(_S, Cat, Ss, Stack, T, Ts, Tzr).
 
 yeccgoto_element(4, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_23(23, Cat, Ss, Stack, T, Ts, Tzr);
+ yeccpars2_21(21, Cat, Ss, Stack, T, Ts, Tzr);
 yeccgoto_element(9=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_10(_S, Cat, Ss, Stack, T, Ts, Tzr);
-yeccgoto_element(24, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_23(23, Cat, Ss, Stack, T, Ts, Tzr).
+yeccgoto_element(22, Cat, Ss, Stack, T, Ts, Tzr) ->
+ yeccpars2_21(21, Cat, Ss, Stack, T, Ts, Tzr).
 
 yeccgoto_elements(4, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_22(22, Cat, Ss, Stack, T, Ts, Tzr);
-yeccgoto_elements(24=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_25(_S, Cat, Ss, Stack, T, Ts, Tzr).
+ yeccpars2_20(20, Cat, Ss, Stack, T, Ts, Tzr);
+yeccgoto_elements(22=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
+ yeccpars2_23(_S, Cat, Ss, Stack, T, Ts, Tzr).
 
 yeccgoto_member(5, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_7(7, Cat, Ss, Stack, T, Ts, Tzr);
 yeccgoto_member(17, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_20(20, Cat, Ss, Stack, T, Ts, Tzr).
+ yeccpars2_7(7, Cat, Ss, Stack, T, Ts, Tzr).
 
 yeccgoto_members(5, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_6(6, Cat, Ss, Stack, T, Ts, Tzr);
 yeccgoto_members(17=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccpars2_19(_S, Cat, Ss, Stack, T, Ts, Tzr).
+ yeccpars2_18(_S, Cat, Ss, Stack, T, Ts, Tzr).
 
 yeccgoto_object(0=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_1(_S, Cat, Ss, Stack, T, Ts, Tzr);
@@ -402,7 +389,7 @@ yeccgoto_object(4=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_1(_S, Cat, Ss, Stack, T, Ts, Tzr);
 yeccgoto_object(9=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_1(_S, Cat, Ss, Stack, T, Ts, Tzr);
-yeccgoto_object(24=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
+yeccgoto_object(22=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_1(_S, Cat, Ss, Stack, T, Ts, Tzr).
 
 -compile({inline,{yeccpars2_4_,1}}).
@@ -461,47 +448,47 @@ yeccpars2_16_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,{yeccpars2_18_,1}}).
--file("jsong.yrl", 7).
+-file("jsong.yrl", 9).
 yeccpars2_18_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
-   { __2 }
+   [ __1 | __3 ]
   end | __Stack].
 
 -compile({inline,{yeccpars2_19_,1}}).
--file("jsong.yrl", 9).
+-file("jsong.yrl", 6).
 yeccpars2_19_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
-   { __1 , __3 }
+   { obj , __2 }
   end | __Stack].
 
 -compile({inline,{yeccpars2_21_,1}}).
--file("jsong.yrl", 6).
+-file("jsong.yrl", 17).
 yeccpars2_21_(__Stack0) ->
- [__3,__2,__1 | __Stack] = __Stack0,
+ [__1 | __Stack] = __Stack0,
  [begin
-   __2
+   [ __1 ]
   end | __Stack].
 
--compile({inline,{yeccpars2_24_,1}}).
+-compile({inline,{yeccpars2_22_,1}}).
 -file("jsong.yrl", 18).
-yeccpars2_24_(__Stack0) ->
+yeccpars2_22_(__Stack0) ->
  [begin
    nil
   end | __Stack0].
 
--compile({inline,{yeccpars2_25_,1}}).
+-compile({inline,{yeccpars2_23_,1}}).
 -file("jsong.yrl", 16).
-yeccpars2_25_(__Stack0) ->
+yeccpars2_23_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
-   lists : flatten ( [ __1 , __3 ] )
+   [ __1 | __3 ]
   end | __Stack].
 
--compile({inline,{yeccpars2_26_,1}}).
+-compile({inline,{yeccpars2_24_,1}}).
 -file("jsong.yrl", 14).
-yeccpars2_26_(__Stack0) ->
+yeccpars2_24_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
    __2
