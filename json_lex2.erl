@@ -20,9 +20,12 @@
 
 strip(TokenChars,TokenLen) -> lists:sublist(TokenChars, 2, TokenLen - 2).
 
-whole_float(TokenChars) ->
-  {ok, NowFloat, 1 } = regexp:sub(TokenChars,"e",".0e"),
-  list_to_float(NowFloat).
+whole_float(Token_Chars) ->
+       list_to_float(insert_point_zero(Token_Chars)).
+
+insert_point_zero([$e|Cs]) -> ".0e" ++ Cs;
+insert_point_zero([$E|Cs]) -> ".0e" ++ Cs;
+insert_point_zero([C |Cs]) -> [C | insert_point_zero(Cs)].
 
 unescape([$\\,$\"|Cs]) -> [$\"|unescape(Cs)];
 unescape([$\\,$\\|Cs]) -> [$\\|unescape(Cs)];
