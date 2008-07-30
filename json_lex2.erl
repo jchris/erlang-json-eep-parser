@@ -5,15 +5,48 @@
 %% property of the creator of the scanner and is not covered by that
 %% Copyright.
 
--module(jsonl).
+-module(json_lex2).
 
 -export([string/1,string/2,token/2,token/3,tokens/2,tokens/3]).
 -export([format_error/1]).
 
 %% User code. This is placed here to allow extra attributes.
+% "
+
+-define(LOG(Name, Value), 
+        io:format("{~p:~p}: ~p -> ~s~n", [?MODULE, ?LINE, Name, Value])).
+-define(PLOG(Name, Value), 
+        io:format("{~p:~p}: ~p -> ~p~n", [?MODULE, ?LINE, Name, Value])).
 
 strip(TokenChars,TokenLen) -> lists:sublist(TokenChars, 2, TokenLen - 2).
 
+whole_float(TokenChars) ->
+  {ok, NowFloat, 1 } = regexp:sub(TokenChars,"e",".0e"),
+  list_to_float(NowFloat).
+
+unescape([$\\,$\"|Cs]) -> [$\"|unescape(Cs)];
+unescape([$\\,$\\|Cs]) -> [$\\|unescape(Cs)];
+unescape([$\\,$/|Cs]) -> [$/|unescape(Cs)];
+unescape([$\\,$b|Cs]) -> [$\b|unescape(Cs)];
+unescape([$\\,$f|Cs]) -> [$\f|unescape(Cs)];
+unescape([$\\,$n|Cs]) -> [$\n|unescape(Cs)];
+unescape([$\\,$r|Cs]) -> [$\r|unescape(Cs)];
+unescape([$\\,$t|Cs]) -> [$\t|unescape(Cs)];
+unescape([$\\,$u,C0,C1,C2,C3|Cs]) ->
+    C = dehex(C3) bor
+	(dehex(C2) bsl 4) bor
+	(dehex(C1) bsl 8) bor
+	(dehex(C0) bsl 12),
+    [C|unescape(Cs)];
+unescape([C|Cs]) -> [C|unescape(Cs)];
+unescape([]) -> [].
+
+dehex(C) when C >= $0, C =< $9 -> C - $0;
+dehex(C) when C >= $a, C =< $f -> C - $a + 10;
+dehex(C) when C >= $A, C =< $F -> C - $A + 10.
+
+parse_string(StringChars) -> 
+    unescape(StringChars).
 
 format_error({illegal,S}) -> ["illegal characters ",io_lib:write_string(S)];
 format_error({user,S}) -> S.
@@ -207,228 +240,214 @@ yysuf(List, N) -> lists:nthtail(N, List).
 %% return signal either an unrecognised character or end of current
 %% input.
 
-yystate() -> 34.
+yystate() -> 32.
 
-yystate(37, [C|Ics], Line, Tlen, Action, Alen) when C >= $0, C =< $9 ->
-    yystate(35, Ics, Line, Tlen+1, Action, Alen);
-yystate(37, [C|Ics], Line, Tlen, Action, Alen) when C >= $A, C =< $F ->
-    yystate(35, Ics, Line, Tlen+1, Action, Alen);
-yystate(37, [C|Ics], Line, Tlen, Action, Alen) when C >= $a, C =< $f ->
-    yystate(35, Ics, Line, Tlen+1, Action, Alen);
-yystate(37, Ics, Line, Tlen, Action, Alen) ->
-    {Action,Alen,Tlen,Ics,Line,37};
-yystate(36, Ics, Line, Tlen, _, _) ->
+yystate(35, [C|Ics], Line, Tlen, _, _) when C >= $0, C =< $9 ->
+    yystate(35, Ics, Line, Tlen+1, 5, Tlen);
+yystate(35, Ics, Line, Tlen, _, _) ->
+    {5,Tlen,Ics,Line,35};
+yystate(34, Ics, Line, Tlen, _, _) ->
     {1,Tlen,Ics,Line};
-yystate(35, [C|Ics], Line, Tlen, Action, Alen) when C >= $0, C =< $9 ->
-    yystate(31, Ics, Line, Tlen+1, Action, Alen);
-yystate(35, [C|Ics], Line, Tlen, Action, Alen) when C >= $A, C =< $F ->
-    yystate(31, Ics, Line, Tlen+1, Action, Alen);
-yystate(35, [C|Ics], Line, Tlen, Action, Alen) when C >= $a, C =< $f ->
-    yystate(31, Ics, Line, Tlen+1, Action, Alen);
-yystate(35, Ics, Line, Tlen, Action, Alen) ->
-    {Action,Alen,Tlen,Ics,Line,35};
-yystate(34, [$\n|Ics], Line, Tlen, Action, Alen) ->
-    yystate(30, Ics, Line+1, Tlen+1, Action, Alen);
-yystate(34, [$"|Ics], Line, Tlen, Action, Alen) ->
-    yystate(26, Ics, Line, Tlen+1, Action, Alen);
-yystate(34, [$%|Ics], Line, Tlen, Action, Alen) ->
-    yystate(10, Ics, Line, Tlen+1, Action, Alen);
-yystate(34, [$,|Ics], Line, Tlen, Action, Alen) ->
-    yystate(6, Ics, Line, Tlen+1, Action, Alen);
-yystate(34, [$:|Ics], Line, Tlen, Action, Alen) ->
-    yystate(21, Ics, Line, Tlen+1, Action, Alen);
-yystate(34, [$[|Ics], Line, Tlen, Action, Alen) ->
-    yystate(25, Ics, Line, Tlen+1, Action, Alen);
-yystate(34, [$\\|Ics], Line, Tlen, Action, Alen) ->
-    yystate(29, Ics, Line, Tlen+1, Action, Alen);
-yystate(34, [$]|Ics], Line, Tlen, Action, Alen) ->
-    yystate(23, Ics, Line, Tlen+1, Action, Alen);
-yystate(34, [$f|Ics], Line, Tlen, Action, Alen) ->
-    yystate(19, Ics, Line, Tlen+1, Action, Alen);
-yystate(34, [$n|Ics], Line, Tlen, Action, Alen) ->
+yystate(33, Ics, Line, Tlen, _, _) ->
+    {11,Tlen,Ics,Line};
+yystate(32, [$\n|Ics], Line, Tlen, Action, Alen) ->
+    yystate(28, Ics, Line+1, Tlen+1, Action, Alen);
+yystate(32, [$"|Ics], Line, Tlen, Action, Alen) ->
+    yystate(24, Ics, Line, Tlen+1, Action, Alen);
+yystate(32, [$%|Ics], Line, Tlen, Action, Alen) ->
+    yystate(8, Ics, Line, Tlen+1, Action, Alen);
+yystate(32, [$,|Ics], Line, Tlen, Action, Alen) ->
+    yystate(4, Ics, Line, Tlen+1, Action, Alen);
+yystate(32, [$-|Ics], Line, Tlen, Action, Alen) ->
     yystate(0, Ics, Line, Tlen+1, Action, Alen);
-yystate(34, [$t|Ics], Line, Tlen, Action, Alen) ->
-    yystate(16, Ics, Line, Tlen+1, Action, Alen);
-yystate(34, [${|Ics], Line, Tlen, Action, Alen) ->
-    yystate(32, Ics, Line, Tlen+1, Action, Alen);
-yystate(34, [$}|Ics], Line, Tlen, Action, Alen) ->
-    yystate(36, Ics, Line, Tlen+1, Action, Alen);
-yystate(34, [C|Ics], Line, Tlen, Action, Alen) when C >= $\000, C =< $\t ->
+yystate(32, [$:|Ics], Line, Tlen, Action, Alen) ->
+    yystate(33, Ics, Line, Tlen+1, Action, Alen);
+yystate(32, [$[|Ics], Line, Tlen, Action, Alen) ->
+    yystate(29, Ics, Line, Tlen+1, Action, Alen);
+yystate(32, [$]|Ics], Line, Tlen, Action, Alen) ->
+    yystate(25, Ics, Line, Tlen+1, Action, Alen);
+yystate(32, [$f|Ics], Line, Tlen, Action, Alen) ->
+    yystate(21, Ics, Line, Tlen+1, Action, Alen);
+yystate(32, [$n|Ics], Line, Tlen, Action, Alen) ->
+    yystate(1, Ics, Line, Tlen+1, Action, Alen);
+yystate(32, [$t|Ics], Line, Tlen, Action, Alen) ->
+    yystate(14, Ics, Line, Tlen+1, Action, Alen);
+yystate(32, [${|Ics], Line, Tlen, Action, Alen) ->
     yystate(30, Ics, Line, Tlen+1, Action, Alen);
-yystate(34, [C|Ics], Line, Tlen, Action, Alen) when C >= $\v, C =< $\s ->
-    yystate(30, Ics, Line, Tlen+1, Action, Alen);
-yystate(34, [C|Ics], Line, Tlen, Action, Alen) when C >= $0, C =< $9 ->
-    yystate(2, Ics, Line, Tlen+1, Action, Alen);
-yystate(34, Ics, Line, Tlen, Action, Alen) ->
-    {Action,Alen,Tlen,Ics,Line,34};
-yystate(33, [C|Ics], Line, Tlen, Action, Alen) when C >= $0, C =< $9 ->
-    yystate(37, Ics, Line, Tlen+1, Action, Alen);
-yystate(33, [C|Ics], Line, Tlen, Action, Alen) when C >= $A, C =< $F ->
-    yystate(37, Ics, Line, Tlen+1, Action, Alen);
-yystate(33, [C|Ics], Line, Tlen, Action, Alen) when C >= $a, C =< $f ->
-    yystate(37, Ics, Line, Tlen+1, Action, Alen);
-yystate(33, Ics, Line, Tlen, Action, Alen) ->
-    {Action,Alen,Tlen,Ics,Line,33};
-yystate(32, Ics, Line, Tlen, _, _) ->
-    {0,Tlen,Ics,Line};
+yystate(32, [$}|Ics], Line, Tlen, Action, Alen) ->
+    yystate(34, Ics, Line, Tlen+1, Action, Alen);
+yystate(32, [C|Ics], Line, Tlen, Action, Alen) when C >= $\000, C =< $\t ->
+    yystate(28, Ics, Line, Tlen+1, Action, Alen);
+yystate(32, [C|Ics], Line, Tlen, Action, Alen) when C >= $\v, C =< $\s ->
+    yystate(28, Ics, Line, Tlen+1, Action, Alen);
+yystate(32, [C|Ics], Line, Tlen, Action, Alen) when C >= $0, C =< $9 ->
+    yystate(3, Ics, Line, Tlen+1, Action, Alen);
+yystate(32, Ics, Line, Tlen, Action, Alen) ->
+    {Action,Alen,Tlen,Ics,Line,32};
 yystate(31, [C|Ics], Line, Tlen, Action, Alen) when C >= $0, C =< $9 ->
-    yystate(27, Ics, Line, Tlen+1, Action, Alen);
-yystate(31, [C|Ics], Line, Tlen, Action, Alen) when C >= $A, C =< $F ->
-    yystate(27, Ics, Line, Tlen+1, Action, Alen);
-yystate(31, [C|Ics], Line, Tlen, Action, Alen) when C >= $a, C =< $f ->
-    yystate(27, Ics, Line, Tlen+1, Action, Alen);
+    yystate(35, Ics, Line, Tlen+1, Action, Alen);
 yystate(31, Ics, Line, Tlen, Action, Alen) ->
     {Action,Alen,Tlen,Ics,Line,31};
-yystate(30, [$\n|Ics], Line, Tlen, _, _) ->
-    yystate(30, Ics, Line+1, Tlen+1, 13, Tlen);
-yystate(30, [$%|Ics], Line, Tlen, _, _) ->
-    yystate(10, Ics, Line, Tlen+1, 13, Tlen);
-yystate(30, [C|Ics], Line, Tlen, _, _) when C >= $\000, C =< $\t ->
-    yystate(30, Ics, Line, Tlen+1, 13, Tlen);
-yystate(30, [C|Ics], Line, Tlen, _, _) when C >= $\v, C =< $\s ->
-    yystate(30, Ics, Line, Tlen+1, 13, Tlen);
 yystate(30, Ics, Line, Tlen, _, _) ->
-    {13,Tlen,Ics,Line,30};
-yystate(29, [$u|Ics], Line, Tlen, Action, Alen) ->
-    yystate(33, Ics, Line, Tlen+1, Action, Alen);
-yystate(29, Ics, Line, Tlen, Action, Alen) ->
-    {Action,Alen,Tlen,Ics,Line,29};
-yystate(28, Ics, Line, Tlen, _, _) ->
-    {8,Tlen,Ics,Line};
-yystate(27, Ics, Line, Tlen, _, _) ->
-    {7,Tlen,Ics,Line};
-yystate(26, [$\n|Ics], Line, Tlen, Action, Alen) ->
-    yystate(26, Ics, Line+1, Tlen+1, Action, Alen);
-yystate(26, [$"|Ics], Line, Tlen, Action, Alen) ->
-    yystate(22, Ics, Line, Tlen+1, Action, Alen);
-yystate(26, [$\\|Ics], Line, Tlen, Action, Alen) ->
-    yystate(18, Ics, Line, Tlen+1, Action, Alen);
-yystate(26, [C|Ics], Line, Tlen, Action, Alen) when C >= $\000, C =< $\t ->
-    yystate(26, Ics, Line, Tlen+1, Action, Alen);
-yystate(26, [C|Ics], Line, Tlen, Action, Alen) when C >= $\v, C =< $! ->
-    yystate(26, Ics, Line, Tlen+1, Action, Alen);
-yystate(26, [C|Ics], Line, Tlen, Action, Alen) when C >= $#, C =< $[ ->
-    yystate(26, Ics, Line, Tlen+1, Action, Alen);
-yystate(26, [C|Ics], Line, Tlen, Action, Alen) when C >= $], C =< $ÿ ->
-    yystate(26, Ics, Line, Tlen+1, Action, Alen);
-yystate(26, Ics, Line, Tlen, Action, Alen) ->
-    {Action,Alen,Tlen,Ics,Line,26};
-yystate(25, Ics, Line, Tlen, _, _) ->
+    {0,Tlen,Ics,Line};
+yystate(29, Ics, Line, Tlen, _, _) ->
     {2,Tlen,Ics,Line};
-yystate(24, [$e|Ics], Line, Tlen, Action, Alen) ->
-    yystate(28, Ics, Line, Tlen+1, Action, Alen);
+yystate(28, [$\n|Ics], Line, Tlen, _, _) ->
+    yystate(28, Ics, Line+1, Tlen+1, 13, Tlen);
+yystate(28, [$%|Ics], Line, Tlen, _, _) ->
+    yystate(8, Ics, Line, Tlen+1, 13, Tlen);
+yystate(28, [C|Ics], Line, Tlen, _, _) when C >= $\000, C =< $\t ->
+    yystate(28, Ics, Line, Tlen+1, 13, Tlen);
+yystate(28, [C|Ics], Line, Tlen, _, _) when C >= $\v, C =< $\s ->
+    yystate(28, Ics, Line, Tlen+1, 13, Tlen);
+yystate(28, Ics, Line, Tlen, _, _) ->
+    {13,Tlen,Ics,Line,28};
+yystate(27, [$+|Ics], Line, Tlen, Action, Alen) ->
+    yystate(31, Ics, Line, Tlen+1, Action, Alen);
+yystate(27, [$-|Ics], Line, Tlen, Action, Alen) ->
+    yystate(31, Ics, Line, Tlen+1, Action, Alen);
+yystate(27, [C|Ics], Line, Tlen, Action, Alen) when C >= $0, C =< $9 ->
+    yystate(35, Ics, Line, Tlen+1, Action, Alen);
+yystate(27, Ics, Line, Tlen, Action, Alen) ->
+    {Action,Alen,Tlen,Ics,Line,27};
+yystate(26, Ics, Line, Tlen, _, _) ->
+    {8,Tlen,Ics,Line};
+yystate(25, Ics, Line, Tlen, _, _) ->
+    {3,Tlen,Ics,Line};
+yystate(24, [$\n|Ics], Line, Tlen, Action, Alen) ->
+    yystate(24, Ics, Line+1, Tlen+1, Action, Alen);
+yystate(24, [$"|Ics], Line, Tlen, Action, Alen) ->
+    yystate(20, Ics, Line, Tlen+1, Action, Alen);
+yystate(24, [$\\|Ics], Line, Tlen, Action, Alen) ->
+    yystate(16, Ics, Line, Tlen+1, Action, Alen);
+yystate(24, [C|Ics], Line, Tlen, Action, Alen) when C >= $\000, C =< $\t ->
+    yystate(24, Ics, Line, Tlen+1, Action, Alen);
+yystate(24, [C|Ics], Line, Tlen, Action, Alen) when C >= $\v, C =< $! ->
+    yystate(24, Ics, Line, Tlen+1, Action, Alen);
+yystate(24, [C|Ics], Line, Tlen, Action, Alen) when C >= $#, C =< $[ ->
+    yystate(24, Ics, Line, Tlen+1, Action, Alen);
+yystate(24, [C|Ics], Line, Tlen, Action, Alen) when C >= $], C =< $ÿ ->
+    yystate(24, Ics, Line, Tlen+1, Action, Alen);
 yystate(24, Ics, Line, Tlen, Action, Alen) ->
     {Action,Alen,Tlen,Ics,Line,24};
+yystate(23, [C|Ics], Line, Tlen, _, _) when C >= $0, C =< $9 ->
+    yystate(23, Ics, Line, Tlen+1, 4, Tlen);
 yystate(23, Ics, Line, Tlen, _, _) ->
-    {3,Tlen,Ics,Line};
-yystate(22, Ics, Line, Tlen, _, _) ->
-    {6,Tlen,Ics,Line};
-yystate(21, Ics, Line, Tlen, _, _) ->
-    {11,Tlen,Ics,Line};
-yystate(20, [$u|Ics], Line, Tlen, Action, Alen) ->
-    yystate(24, Ics, Line, Tlen+1, Action, Alen);
-yystate(20, Ics, Line, Tlen, Action, Alen) ->
-    {Action,Alen,Tlen,Ics,Line,20};
-yystate(19, [$a|Ics], Line, Tlen, Action, Alen) ->
-    yystate(15, Ics, Line, Tlen+1, Action, Alen);
+    {4,Tlen,Ics,Line,23};
+yystate(22, [$e|Ics], Line, Tlen, Action, Alen) ->
+    yystate(26, Ics, Line, Tlen+1, Action, Alen);
+yystate(22, Ics, Line, Tlen, Action, Alen) ->
+    {Action,Alen,Tlen,Ics,Line,22};
+yystate(21, [$a|Ics], Line, Tlen, Action, Alen) ->
+    yystate(17, Ics, Line, Tlen+1, Action, Alen);
+yystate(21, Ics, Line, Tlen, Action, Alen) ->
+    {Action,Alen,Tlen,Ics,Line,21};
+yystate(20, Ics, Line, Tlen, _, _) ->
+    {7,Tlen,Ics,Line};
+yystate(19, [C|Ics], Line, Tlen, Action, Alen) when C >= $0, C =< $9 ->
+    yystate(23, Ics, Line, Tlen+1, Action, Alen);
 yystate(19, Ics, Line, Tlen, Action, Alen) ->
     {Action,Alen,Tlen,Ics,Line,19};
-yystate(18, [C|Ics], Line, Tlen, Action, Alen) when C >= $\000, C =< $\t ->
-    yystate(14, Ics, Line, Tlen+1, Action, Alen);
-yystate(18, [C|Ics], Line, Tlen, Action, Alen) when C >= $\v, C =< $ÿ ->
-    yystate(14, Ics, Line, Tlen+1, Action, Alen);
+yystate(18, [$u|Ics], Line, Tlen, Action, Alen) ->
+    yystate(22, Ics, Line, Tlen+1, Action, Alen);
 yystate(18, Ics, Line, Tlen, Action, Alen) ->
     {Action,Alen,Tlen,Ics,Line,18};
-yystate(17, [C|Ics], Line, Tlen, _, _) when C >= $0, C =< $9 ->
-    yystate(17, Ics, Line, Tlen+1, 4, Tlen);
-yystate(17, Ics, Line, Tlen, _, _) ->
-    {4,Tlen,Ics,Line,17};
-yystate(16, [$r|Ics], Line, Tlen, Action, Alen) ->
-    yystate(20, Ics, Line, Tlen+1, Action, Alen);
+yystate(17, [$l|Ics], Line, Tlen, Action, Alen) ->
+    yystate(13, Ics, Line, Tlen+1, Action, Alen);
+yystate(17, Ics, Line, Tlen, Action, Alen) ->
+    {Action,Alen,Tlen,Ics,Line,17};
+yystate(16, [C|Ics], Line, Tlen, Action, Alen) when C >= $\000, C =< $\t ->
+    yystate(12, Ics, Line, Tlen+1, Action, Alen);
+yystate(16, [C|Ics], Line, Tlen, Action, Alen) when C >= $\v, C =< $ÿ ->
+    yystate(12, Ics, Line, Tlen+1, Action, Alen);
 yystate(16, Ics, Line, Tlen, Action, Alen) ->
     {Action,Alen,Tlen,Ics,Line,16};
-yystate(15, [$l|Ics], Line, Tlen, Action, Alen) ->
-    yystate(11, Ics, Line, Tlen+1, Action, Alen);
+yystate(15, [$+|Ics], Line, Tlen, Action, Alen) ->
+    yystate(19, Ics, Line, Tlen+1, Action, Alen);
+yystate(15, [$-|Ics], Line, Tlen, Action, Alen) ->
+    yystate(19, Ics, Line, Tlen+1, Action, Alen);
+yystate(15, [C|Ics], Line, Tlen, Action, Alen) when C >= $0, C =< $9 ->
+    yystate(23, Ics, Line, Tlen+1, Action, Alen);
 yystate(15, Ics, Line, Tlen, Action, Alen) ->
     {Action,Alen,Tlen,Ics,Line,15};
-yystate(14, [$\n|Ics], Line, Tlen, Action, Alen) ->
-    yystate(14, Ics, Line+1, Tlen+1, Action, Alen);
-yystate(14, [$"|Ics], Line, Tlen, Action, Alen) ->
-    yystate(22, Ics, Line, Tlen+1, Action, Alen);
-yystate(14, [$\\|Ics], Line, Tlen, Action, Alen) ->
+yystate(14, [$r|Ics], Line, Tlen, Action, Alen) ->
     yystate(18, Ics, Line, Tlen+1, Action, Alen);
-yystate(14, [C|Ics], Line, Tlen, Action, Alen) when C >= $\000, C =< $\t ->
-    yystate(14, Ics, Line, Tlen+1, Action, Alen);
-yystate(14, [C|Ics], Line, Tlen, Action, Alen) when C >= $\v, C =< $! ->
-    yystate(14, Ics, Line, Tlen+1, Action, Alen);
-yystate(14, [C|Ics], Line, Tlen, Action, Alen) when C >= $#, C =< $[ ->
-    yystate(14, Ics, Line, Tlen+1, Action, Alen);
-yystate(14, [C|Ics], Line, Tlen, Action, Alen) when C >= $], C =< $ÿ ->
-    yystate(14, Ics, Line, Tlen+1, Action, Alen);
 yystate(14, Ics, Line, Tlen, Action, Alen) ->
     {Action,Alen,Tlen,Ics,Line,14};
-yystate(13, [C|Ics], Line, Tlen, Action, Alen) when C >= $0, C =< $9 ->
-    yystate(17, Ics, Line, Tlen+1, Action, Alen);
+yystate(13, [$s|Ics], Line, Tlen, Action, Alen) ->
+    yystate(9, Ics, Line, Tlen+1, Action, Alen);
 yystate(13, Ics, Line, Tlen, Action, Alen) ->
     {Action,Alen,Tlen,Ics,Line,13};
-yystate(12, Ics, Line, Tlen, _, _) ->
-    {10,Tlen,Ics,Line};
-yystate(11, [$s|Ics], Line, Tlen, Action, Alen) ->
-    yystate(7, Ics, Line, Tlen+1, Action, Alen);
-yystate(11, Ics, Line, Tlen, Action, Alen) ->
-    {Action,Alen,Tlen,Ics,Line,11};
-yystate(10, [$\n|Ics], Line, Tlen, _, _) ->
-    yystate(30, Ics, Line+1, Tlen+1, 13, Tlen);
-yystate(10, [C|Ics], Line, Tlen, _, _) when C >= $\000, C =< $\t ->
-    yystate(10, Ics, Line, Tlen+1, 13, Tlen);
-yystate(10, [C|Ics], Line, Tlen, _, _) when C >= $\v, C =< $ÿ ->
-    yystate(10, Ics, Line, Tlen+1, 13, Tlen);
+yystate(12, [$\n|Ics], Line, Tlen, Action, Alen) ->
+    yystate(12, Ics, Line+1, Tlen+1, Action, Alen);
+yystate(12, [$"|Ics], Line, Tlen, Action, Alen) ->
+    yystate(20, Ics, Line, Tlen+1, Action, Alen);
+yystate(12, [$\\|Ics], Line, Tlen, Action, Alen) ->
+    yystate(16, Ics, Line, Tlen+1, Action, Alen);
+yystate(12, [C|Ics], Line, Tlen, Action, Alen) when C >= $\000, C =< $\t ->
+    yystate(12, Ics, Line, Tlen+1, Action, Alen);
+yystate(12, [C|Ics], Line, Tlen, Action, Alen) when C >= $\v, C =< $! ->
+    yystate(12, Ics, Line, Tlen+1, Action, Alen);
+yystate(12, [C|Ics], Line, Tlen, Action, Alen) when C >= $#, C =< $[ ->
+    yystate(12, Ics, Line, Tlen+1, Action, Alen);
+yystate(12, [C|Ics], Line, Tlen, Action, Alen) when C >= $], C =< $ÿ ->
+    yystate(12, Ics, Line, Tlen+1, Action, Alen);
+yystate(12, Ics, Line, Tlen, Action, Alen) ->
+    {Action,Alen,Tlen,Ics,Line,12};
+yystate(11, [$E|Ics], Line, Tlen, _, _) ->
+    yystate(15, Ics, Line, Tlen+1, 4, Tlen);
+yystate(11, [$e|Ics], Line, Tlen, _, _) ->
+    yystate(15, Ics, Line, Tlen+1, 4, Tlen);
+yystate(11, [C|Ics], Line, Tlen, _, _) when C >= $0, C =< $9 ->
+    yystate(11, Ics, Line, Tlen+1, 4, Tlen);
+yystate(11, Ics, Line, Tlen, _, _) ->
+    {4,Tlen,Ics,Line,11};
 yystate(10, Ics, Line, Tlen, _, _) ->
-    {13,Tlen,Ics,Line,10};
-yystate(9, [$+|Ics], Line, Tlen, Action, Alen) ->
-    yystate(13, Ics, Line, Tlen+1, Action, Alen);
-yystate(9, [$-|Ics], Line, Tlen, Action, Alen) ->
-    yystate(13, Ics, Line, Tlen+1, Action, Alen);
-yystate(9, [C|Ics], Line, Tlen, Action, Alen) when C >= $0, C =< $9 ->
-    yystate(17, Ics, Line, Tlen+1, Action, Alen);
+    {10,Tlen,Ics,Line};
+yystate(9, [$e|Ics], Line, Tlen, Action, Alen) ->
+    yystate(5, Ics, Line, Tlen+1, Action, Alen);
 yystate(9, Ics, Line, Tlen, Action, Alen) ->
     {Action,Alen,Tlen,Ics,Line,9};
-yystate(8, [$l|Ics], Line, Tlen, Action, Alen) ->
-    yystate(12, Ics, Line, Tlen+1, Action, Alen);
-yystate(8, Ics, Line, Tlen, Action, Alen) ->
-    {Action,Alen,Tlen,Ics,Line,8};
-yystate(7, [$e|Ics], Line, Tlen, Action, Alen) ->
-    yystate(3, Ics, Line, Tlen+1, Action, Alen);
+yystate(8, [$\n|Ics], Line, Tlen, _, _) ->
+    yystate(28, Ics, Line+1, Tlen+1, 13, Tlen);
+yystate(8, [C|Ics], Line, Tlen, _, _) when C >= $\000, C =< $\t ->
+    yystate(8, Ics, Line, Tlen+1, 13, Tlen);
+yystate(8, [C|Ics], Line, Tlen, _, _) when C >= $\v, C =< $ÿ ->
+    yystate(8, Ics, Line, Tlen+1, 13, Tlen);
+yystate(8, Ics, Line, Tlen, _, _) ->
+    {13,Tlen,Ics,Line,8};
+yystate(7, [C|Ics], Line, Tlen, Action, Alen) when C >= $0, C =< $9 ->
+    yystate(11, Ics, Line, Tlen+1, Action, Alen);
 yystate(7, Ics, Line, Tlen, Action, Alen) ->
     {Action,Alen,Tlen,Ics,Line,7};
-yystate(6, Ics, Line, Tlen, _, _) ->
-    {12,Tlen,Ics,Line};
-yystate(5, [$E|Ics], Line, Tlen, _, _) ->
-    yystate(9, Ics, Line, Tlen+1, 4, Tlen);
-yystate(5, [$e|Ics], Line, Tlen, _, _) ->
-    yystate(9, Ics, Line, Tlen+1, 4, Tlen);
-yystate(5, [C|Ics], Line, Tlen, _, _) when C >= $0, C =< $9 ->
-    yystate(5, Ics, Line, Tlen+1, 4, Tlen);
+yystate(6, [$l|Ics], Line, Tlen, Action, Alen) ->
+    yystate(10, Ics, Line, Tlen+1, Action, Alen);
+yystate(6, Ics, Line, Tlen, Action, Alen) ->
+    {Action,Alen,Tlen,Ics,Line,6};
 yystate(5, Ics, Line, Tlen, _, _) ->
-    {4,Tlen,Ics,Line,5};
-yystate(4, [$l|Ics], Line, Tlen, Action, Alen) ->
-    yystate(8, Ics, Line, Tlen+1, Action, Alen);
-yystate(4, Ics, Line, Tlen, Action, Alen) ->
-    {Action,Alen,Tlen,Ics,Line,4};
-yystate(3, Ics, Line, Tlen, _, _) ->
     {9,Tlen,Ics,Line};
-yystate(2, [$.|Ics], Line, Tlen, _, _) ->
-    yystate(1, Ics, Line, Tlen+1, 5, Tlen);
-yystate(2, [C|Ics], Line, Tlen, _, _) when C >= $0, C =< $9 ->
-    yystate(2, Ics, Line, Tlen+1, 5, Tlen);
-yystate(2, Ics, Line, Tlen, _, _) ->
-    {5,Tlen,Ics,Line,2};
-yystate(1, [C|Ics], Line, Tlen, Action, Alen) when C >= $0, C =< $9 ->
-    yystate(5, Ics, Line, Tlen+1, Action, Alen);
+yystate(4, Ics, Line, Tlen, _, _) ->
+    {12,Tlen,Ics,Line};
+yystate(3, [$.|Ics], Line, Tlen, _, _) ->
+    yystate(7, Ics, Line, Tlen+1, 6, Tlen);
+yystate(3, [$E|Ics], Line, Tlen, _, _) ->
+    yystate(27, Ics, Line, Tlen+1, 6, Tlen);
+yystate(3, [$e|Ics], Line, Tlen, _, _) ->
+    yystate(27, Ics, Line, Tlen+1, 6, Tlen);
+yystate(3, [C|Ics], Line, Tlen, _, _) when C >= $0, C =< $9 ->
+    yystate(3, Ics, Line, Tlen+1, 6, Tlen);
+yystate(3, Ics, Line, Tlen, _, _) ->
+    {6,Tlen,Ics,Line,3};
+yystate(2, [$l|Ics], Line, Tlen, Action, Alen) ->
+    yystate(6, Ics, Line, Tlen+1, Action, Alen);
+yystate(2, Ics, Line, Tlen, Action, Alen) ->
+    {Action,Alen,Tlen,Ics,Line,2};
+yystate(1, [$u|Ics], Line, Tlen, Action, Alen) ->
+    yystate(2, Ics, Line, Tlen+1, Action, Alen);
 yystate(1, Ics, Line, Tlen, Action, Alen) ->
     {Action,Alen,Tlen,Ics,Line,1};
-yystate(0, [$u|Ics], Line, Tlen, Action, Alen) ->
-    yystate(4, Ics, Line, Tlen+1, Action, Alen);
+yystate(0, [C|Ics], Line, Tlen, Action, Alen) when C >= $0, C =< $9 ->
+    yystate(3, Ics, Line, Tlen+1, Action, Alen);
 yystate(0, Ics, Line, Tlen, Action, Alen) ->
     {Action,Alen,Tlen,Ics,Line,0};
 yystate(S, Ics, Line, Tlen, Action, Alen) ->
@@ -451,14 +470,13 @@ yyaction(4, TokenLen, YYtcs, TokenLine) ->
     {token,{float,TokenLine,list_to_float(TokenChars)}};
 yyaction(5, TokenLen, YYtcs, TokenLine) ->
     TokenChars = yypre(YYtcs, TokenLen),
-    {token,{integer,TokenLine,list_to_integer(TokenChars)}};
+    {token,{float,TokenLine,whole_float(TokenChars)}};
 yyaction(6, TokenLen, YYtcs, TokenLine) ->
     TokenChars = yypre(YYtcs, TokenLen),
-    {token,
-     {string,TokenLine,list_to_binary(strip(TokenChars, TokenLen))}};
+    {token,{integer,TokenLine,list_to_integer(TokenChars)}};
 yyaction(7, TokenLen, YYtcs, TokenLine) ->
     TokenChars = yypre(YYtcs, TokenLen),
-    {token,{unicode,TokenLine,TokenChars}};
+    {token,{string,TokenLine,parse_string(strip(TokenChars, TokenLen))}};
 yyaction(8, _, _, TokenLine) ->
     {token,{true,TokenLine}};
 yyaction(9, _, _, TokenLine) ->
