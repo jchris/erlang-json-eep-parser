@@ -2,6 +2,8 @@ To run the tests for the EEP JSON parser:
 
 # erl
 
+c(leex).
+
 leex:file(json_lex2), c(json_lex2).
 
 yecc:file(json_grammar), c(json_grammar).
