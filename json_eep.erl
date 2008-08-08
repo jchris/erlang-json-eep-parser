@@ -29,15 +29,153 @@
 -module(json_eep).
 -author('bob@mochimedia.com').
 -author('jchris@grabb.it').
--export([json_to_term/1]).
+-export([json_to_term/1, term_to_json/1]).
 -export([test/0]).
+
+-define(Q, $\").
+
+-define(LOG(Format, Args),
+    io:format(Format, Args)).
+
+
+term_to_json(T) ->
+    S = json_encode(T),
+    case is_list(S) of
+    true ->
+        list_to_binary(S);
+    false ->
+        S
+    end.
 
 json_to_term(S) ->
     {ok, Tokens, _} = json_lex2:string(S),
-    % ?LOG("Tokens",Tokens),
+    % ?LOG("Tokens ~p~n",[Tokens]),
     {ok, Result} = json_grammar:parse(Tokens),
-    % ?LOG("Result",Result),
+    % ?LOG("Result ~p~n",[Result]),
     Result.
+
+
+json_encode(true) ->
+    <<"true">>;
+json_encode(false) ->
+    <<"false">>;
+json_encode(null) ->
+    <<"null">>;
+json_encode(I) when is_integer(I) andalso I >= -2147483648 andalso I =< 2147483647 ->
+    %% Anything outside of 32-bit integers should be encoded as a float
+    integer_to_list(I);
+json_encode(I) when is_integer(I) ->
+    format_float(float(I));
+json_encode(F) when is_float(F) ->
+    format_float(F);
+json_encode(S) when is_binary(S); is_atom(S) ->
+    json_encode_string(S);
+json_encode(Array) when is_list(Array) ->
+    json_encode_array(Array);
+json_encode({Props}) when is_list(Props) ->
+    json_encode_proplist(Props);
+json_encode(Bad) ->
+    exit({json_encode, {bad_term, Bad}}).
+
+json_encode_array([]) ->
+    <<"[]">>;
+json_encode_array(L) ->
+    F = fun (O, Acc) ->
+                [$,, json_encode(O) | Acc]
+        end,
+    [$, | Acc1] = lists:foldl(F, "[", L),
+    lists:reverse([$\] | Acc1]).
+
+json_encode_proplist([]) ->
+    <<"{}">>;
+json_encode_proplist(Props) ->
+    F = fun ({K, V}, Acc) ->
+                % ?LOG("K ~p V ~p~n",[K, V]),
+                KS = json_encode_string(K),
+                VS = json_encode(V),
+                % ?LOG("KS ~p VS ~p~n",[KS, VS]),
+                [$,, VS, $:, KS | Acc]
+        end,
+    [$, | Acc1] = lists:foldl(F, "{", Props),
+    lists:reverse([$\} | Acc1]).
+
+json_encode_string(A) when is_atom(A) ->
+    json_encode_string_unicode(xmerl_ucs:from_utf8(atom_to_list(A)), [?Q]);
+json_encode_string(B) when is_binary(B) ->
+    json_encode_string_unicode(xmerl_ucs:from_utf8(B), [?Q]);
+json_encode_string(I) when is_integer(I) ->
+    json_encode_string_unicode(integer_to_list(I), [?Q]);
+json_encode_string(L) when is_list(L) ->
+    json_encode_string_unicode(L, [?Q]).
+
+json_encode_string_unicode([], Acc) ->
+    lists:reverse([$\" | Acc]);
+json_encode_string_unicode([C | Cs], Acc) ->
+    Acc1 = case C of
+               ?Q ->
+                   [?Q, $\\ | Acc];
+               %% Escaping solidus is only useful when trying to protect
+               %% against "</script>" injection attacks which are only
+               %% possible when JSON is inserted into a HTML document
+               %% in-line. mochijson2 does not protect you from this, so
+               %% if you do insert directly into HTML then you need to
+               %% uncomment the following case or escape the output of encode.
+               %%
+               %% $/ ->
+               %%    [$/, $\\ | Acc];
+               %%
+               $\\ ->
+                   [$\\, $\\ | Acc];
+               $\b ->
+                   [$b, $\\ | Acc];
+               $\f ->
+                   [$f, $\\ | Acc];
+               $\n ->
+                   [$n, $\\ | Acc];
+               $\r ->
+                   [$r, $\\ | Acc];
+               $\t ->
+                   [$t, $\\ | Acc];
+               C when C >= 0, C < $\s; C >= 16#7f, C =< 16#10FFFF ->
+                   [unihex(C) | Acc];
+               C when C < 16#7f ->
+                   [C | Acc];
+               _ ->
+                   exit({json_encode, {bad_char, C}})
+           end,
+    json_encode_string_unicode(Cs, Acc1).
+
+hexdigit(C) when C >= 0, C =< 9 ->
+    C + $0;
+hexdigit(C) when C =< 15 ->
+    C + $a - 10.
+
+unihex(C) when C < 16#10000 ->
+    <<D3:4, D2:4, D1:4, D0:4>> = <<C:16>>,
+    Digits = [hexdigit(D) || D <- [D3, D2, D1, D0]],
+    [$\\, $u | Digits];
+unihex(C) when C =< 16#10FFFF ->
+    N = C - 16#10000,
+    S1 = 16#d800 bor ((N bsr 10) band 16#3ff),
+    S2 = 16#dc00 bor (N band 16#3ff),
+    [unihex(S1), unihex(S2)].
+
+format_float(F) ->
+    format_float1(lists:reverse(float_to_list(F)), []).
+
+format_float1([$0, $0, _, $e | Rest], []) ->
+    strip_zeros(Rest, []);
+format_float1([Sign, $e | Rest], Acc) ->
+    strip_zeros(Rest, [$e, Sign | Acc]);
+format_float1([C | Rest], Acc) ->
+    format_float1(Rest, [C | Acc]).
+
+strip_zeros(L=[$0, $. | _], Acc) ->
+    lists:reverse(L, Acc);
+strip_zeros([$0 | Rest], Acc) ->
+    strip_zeros(Rest, Acc);
+strip_zeros(L, Acc) ->
+    lists:reverse(L, Acc).
 
 %% Test for equivalence of Erlang terms.
 %% Due to arbitrary order of construction, equivalent objects might
@@ -83,10 +221,13 @@ test() ->
 test_next([]) -> {ok, passed};
 
 test_next([{E,J}|Rest]) ->
-  io:format("~p ~p~n", [E, J]),
-  Decoded = json_to_term(J),
-  io:format("~p ~p~n", [E, Decoded]),
-  true = equiv(E, Decoded),
+  ?LOG("Test: Term ~p JSON ~s~n", [E, J]),
+  Term = json_to_term(J),
+  ?LOG("Decoded ~p~n", [Term]),
+  true = equiv(E, Term),
+  Json = binary_to_list(term_to_json(Term)),
+  ?LOG("Encoded ~s~n~n", [Json]),
+  true = equiv(Term, json_to_term(Json)),
   test_next(Rest).
   
 tests(binary) ->
