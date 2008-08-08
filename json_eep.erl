@@ -42,9 +42,10 @@ term_to_json(T) ->
     S = json_encode(T),
     case is_list(S) of
     true ->
-        list_to_binary(S);
+        % I don't know why this helps
+        binary_to_list(list_to_binary(S));
     false ->
-        S
+        binary_to_list(S)
     end.
 
 json_to_term(S) ->
@@ -240,7 +241,7 @@ test_next([{E,J}|Rest]) ->
   Term = json_to_term(J),
   ?LOG("Decoded ~p~n", [Term]),
   true = equiv(E, Term),
-  Json = binary_to_list(term_to_json(Term)),
+  Json = term_to_json(Term),
   ?LOG("Encoded ~s~n~n", [Json]),
   true = equiv(Term, json_to_term(Json)),
   test_next(Rest).
