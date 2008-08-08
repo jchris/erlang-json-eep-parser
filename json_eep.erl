@@ -215,6 +215,16 @@ equiv_list([V1 | L1], [V2 | L2]) ->
         false
     end.
 
+profile() ->
+    profile_next(tests(binary)).
+
+profile_next([]) -> ok;
+
+profile_next([{E,J}|Rest]) ->
+    Term = json_to_term(J),
+    Json = term_to_json(Term),
+    profile_next(Rest).
+
 test() -> 
   test_next(tests(binary)).
 

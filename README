@@ -11,3 +11,6 @@ yecc:file(json_grammar), c(json_grammar).
 c(json_eep).
 
 json_eep:test().
+
+To profile the parser:
+
