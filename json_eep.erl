@@ -30,7 +30,7 @@
 -author('bob@mochimedia.com').
 -author('jchris@grabb.it').
 -export([json_to_term/1, term_to_json/1]).
--export([test/0]).
+-export([test/0,profile/0]).
 
 -define(Q, $\").
 
@@ -216,13 +216,18 @@ equiv_list([V1 | L1], [V2 | L2]) ->
     end.
 
 profile() ->
-    profile_next(tests(binary)).
+    {ok, Tracer} = fprof:profile(start),
+    fprof:trace([start, {tracer, Tracer}]),
+    profile_next(tests(binary)),
+    fprof:trace(stop),
+    fprof:analyse().
+    
 
 profile_next([]) -> ok;
 
-profile_next([{E,J}|Rest]) ->
+profile_next([{_,J}|Rest]) ->
     Term = json_to_term(J),
-    Json = term_to_json(Term),
+    % term_to_json(Term),
     profile_next(Rest).
 
 test() -> 
@@ -245,9 +250,9 @@ tests(binary) ->
     {{[{<<"key">>,<<"value">>}]}, "{\"key\":\"value\"}"},
     {{[]},"{}"},
     {[], "[]"},
-    {[1], "[1]"},
-    {[3.1416], "[3.14160]"}, % text representation may truncate, trail zeroes
-    {[-1], "[-1]"},
+    {1, "1"},
+    {3.1416, "3.14160"}, % text representation may truncate, trail zeroes
+    {-1, "-1"},
     {[-3.1416], "[-3.14160]"},
     {{[{<<"number">>, 12.0e10}]}, "{\"number\":1.20000e+11}"},
     {[1.234E+10], "[1.23400e+10]"},
@@ -255,8 +260,8 @@ tests(binary) ->
     {[10.0], "[1.0e+01]"},
     {[123.456], "[1.23456E+2]"},
     {[10.0], "[1e1]"},
-    {[<<"foo">>], "[\"foo\"]"},
-    {[<<>>], "[\"\"]"},
+    {<<"foo">>, "\"foo\""},
+    {[<<"">>], "[\"\"]"},
     {[<<"1/4">>], "[\"1\/4\"]"},
     {[<<"name is \"Quentin\"">>], "[\"name is \\\"Quentin\\\"\"]"},
     {[<<"\n\n\n">>], "[\"\\n\\n\\n\"]"},

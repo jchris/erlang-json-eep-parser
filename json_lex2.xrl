@@ -18,11 +18,7 @@ Rules.
 \-?{D}+(E|e)(\+|\-)?{D}+ : {token,{float,TokenLine,whole_float(TokenChars)}}.
 \-?{D}+		:	{token,{integer,TokenLine,list_to_integer(TokenChars)}}.
 
-% "[^"\\]*(\\[^u][^"\\]*)*"  : {token,{string,TokenLine,strip(unicode_string(TokenChars),TokenLen)}}.
 "[^"\\]*(\\.[^"\\]*)*"  : {token,{string,TokenLine,parse_string(strip(TokenChars,TokenLen))}}.
-
-
-% \\u{H}{H}{H}{H} : {token, {unicode, TokenLine,TokenChars}}.
 
 true : {token,{'true', TokenLine}}.
 false : {token,{'false', TokenLine}}.
