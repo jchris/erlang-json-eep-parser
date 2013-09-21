@@ -287,5 +287,8 @@ tests(binary) ->
 
     % json object in a json array
     {[-123, <<"foo">>, {[{<<"bar">>, []}]}, null],
-     "[-123,\"foo\",{\"bar\":[]},null]"}
+     "[-123,\"foo\",{\"bar\":[]},null]"},
+
+    % unicode > 256
+    {[<<"ellipsis: \\u2026">>], "[\"ellipsis: \\u2026\"]"}
   ].
