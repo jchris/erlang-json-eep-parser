@@ -59,7 +59,12 @@ unescape([$\\,$u,C0,C1,C2,C3|Cs]) ->
 	(dehex(C2) bsl 4) bor
 	(dehex(C1) bsl 8) bor
 	(dehex(C0) bsl 12),
-    [C|unescape(Cs)];
+    case C > 255 of
+        true ->
+            [$\\, $u, C0, C1, C2, C3 |unescape(Cs)];
+        false ->
+            [C|unescape(Cs)]
+    end;
 unescape([C|Cs]) -> [C|unescape(Cs)];
 unescape([]) -> [].
 
